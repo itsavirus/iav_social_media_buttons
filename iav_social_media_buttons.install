@@ -1,0 +1,15 @@
+<?php
+
+/**
+ * Implement hook_uninstall()
+ */
+function iav_social_media_buttons_uninstall() {
+  $button_types = _get_button_types();
+
+  foreach ($button_types as $button_type) {
+    variable_del('iav_smlinks_' . $button_type);
+  }
+
+  variable_del('iav_smlinks_button_set');
+  variable_del('iav_smlinks_show_labels');
+}

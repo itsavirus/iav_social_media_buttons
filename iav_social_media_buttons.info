@@ -1,0 +1,4 @@
+name = Social media buttons
+description = Creates a block with social media buttons
+package = IAV
+core = 7.x

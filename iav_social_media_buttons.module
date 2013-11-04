@@ -1,0 +1,207 @@
+<?php
+
+/**
+ * Implement hook_block_info()
+ */
+function iav_social_media_buttons_block_info() {
+  $blocks = array();
+
+  $blocks['social_media_buttons'] = array (
+    'info' => t('Social media buttons'),
+    'weight' => 0,
+    'satus' => 0,
+    'cache' => DRUPAL_CACHE_GLOBAL,
+  );
+
+  return $blocks;
+}
+
+/**
+ * Implement hook_block_save()
+ */
+function iav_social_media_buttons_block_save($delta, $edit) {
+  if ($delta == 'social_media_buttons') {
+    $button_types = _get_button_types();
+
+    foreach ($button_types as $button_type) {
+      variable_set('iav_smlinks_' . $button_type, $edit[$button_type]);
+    }
+
+    variable_set('iav_smlinks_button_set', $edit['button_set']);
+    variable_set('iav_smlinks_show_labels', $edit['show_labels']);
+    variable_set('iav_smlinks_open_link', $edit['link_behaviour']);
+  }
+}
+
+/**
+ * Implement hook_block_configure()
+ */
+function iav_social_media_buttons_block_configure() {
+  $form = array();
+
+  $button_set_path = base_path().drupal_get_path("module", "iav_social_media_buttons").'/';
+
+  $button_sets = array(
+    'image_set_1',
+    'image_set_2',
+    'image_set_medium',
+    'image_set_3',
+    'image_set_4',
+  );
+
+  $button_types = _get_button_types();
+
+  // setup form
+  $form['social_media_buttons'] = array(
+    '#type'=> 'fieldset',
+    '#title'=> 'Sociale media',
+    '#description' => 'Vul hier de links naar de betreffende sociale media in. Als de links leeg zijn zal het icoontje niet verschijnen',
+  );
+
+  // add input links for each button
+  foreach ($button_types as $button_type) {
+    $form['social_media_buttons'][$button_type] = array(
+      '#type' => 'textfield',
+      '#title' => t($button_type),
+      '#default_value' => variable_get('iav_smlinks_'.$button_type, ''),
+    );
+  }
+
+  // button set select
+  $form['social_media_buttons']['button_set'] = array(
+    '#type' => 'radios',
+    '#title' => t('Button set'),
+    '#default_value' => variable_get('iav_smlinks_button_set', $button_sets[0]),
+    '#options' => array(),
+  );
+
+  // create preview of each button set
+  foreach($button_sets as $button_set) {
+    $options = '';
+    foreach ($button_types as $button_type) {
+      $options .= '<img src="' . $button_set_path . $button_set . '/' . $button_type . '.png" alt=""/>';
+    }
+    $form['social_media_buttons']['button_set']['#options'][$button_set] = $options;
+  }
+
+  // other fields
+  $form['social_media_buttons']['show_labels'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Display labels next to buttons'),
+    '#default_value' => variable_get('iav_smlinks_show_labels', 1),
+  );
+
+  $form['social_media_buttons']['link_behaviour'] = array(
+    '#type' => 'radios',
+    '#title' => t('What behaviour would you like the links to have?'),
+    '#options' => array(
+      t('Open in new tab'),
+      t('Open in same tab'),
+    ),
+    '#default_value' => variable_get('iav_smlinks_open_link', 0),
+  );
+
+  return $form;
+}
+
+/**
+ * Implement hook_block_view()
+ */
+function iav_social_media_buttons_block_view($delta = '') {
+  $block = array();
+  $buttons = array();
+  $button_set = variable_get('iav_smlinks_button_set', 1);
+  $show_labels = variable_get('iav_smlinks_show_labels', 1);
+  $link_behaviour = variable_get('link_behaviour', 0);
+  $button_types = _get_button_types();
+  foreach ($button_types as $button) {
+    $buttons[$button] = variable_get('iav_smlinks_' . $button, '');
+  }
+
+  $block = array(
+    'content' => theme('social_media_buttons', array('buttons' => $buttons, 'button_set' => $button_set, 'show_labels' => $show_labels, 'link_behaviour' => $link_behaviour)),
+  );
+
+  return $block;
+}
+
+
+/**
+ * Implement hook_theme()
+ */
+function iav_social_media_buttons_theme() {
+  return array(
+    'social_media_buttons' => array(
+      'variables' => array('buttons' => array(), 'button_set' => 1, 'show_labels' => TRUE, 'link_behaviour' => 0),
+    ),
+  );
+}
+
+
+/**
+ * Create the HTML output
+ */
+function theme_social_media_buttons($variables) {
+  $buttons = $variables['buttons'];
+  $button_set = $variables['button_set'];
+  $show_labels = $variables['show_labels'];
+  $class= "odd";
+
+  $target = "";
+  if($variables['link_behaviour'] == 0){
+    $target=" target='_blank'";
+  }
+  $content = '<ul class="social-media-buttons">';
+  foreach($buttons as $key => $val) {
+    if (!empty($val)) {
+      $content .= "<li><a class='social_m_link " . $key . " " . $class . "' href='" . $val . "'" . $target . "> ";
+      $content .= "<img src='" . _get_button_image($button_set, $key) . "' alt=''/>";
+      if ($show_labels) {
+        $content .= "<span class='smlink_title'>"  . _sm_link_titles($key) . "</span>";
+      }
+      $content .= '</a></li>';
+      $class = ($class == "odd") ? "even" : "odd";
+    }
+  }
+  $content .= '</ul>';
+
+  return $content;
+}
+
+
+/**
+ * Get the button types available
+ *
+ * Be carfull with removing as variables will be kept in drupal DB,
+ * this list should probably be stored inside DB with add/delete functions
+ */
+function _get_button_types() {
+  return array(
+    'facebook',
+    'flickr',
+    'foursquare',
+    'hyves',
+    'twitter',
+    'youtube',
+    'pinterest',
+    'digg',
+    'linkedin',
+    'myspace',
+    'delicious',
+  );
+}
+
+
+/**
+ * Transform image name for label
+ */
+function _sm_link_titles($key) {
+  return ucfirst($key);
+}
+
+/**
+ * Get path of button file name
+ */
+function _get_button_image($button_set, $button_type) {
+  return base_path() . drupal_get_path("module", "iav_social_media_buttons") . "/" . $button_set . "/" . $button_type . ".png";
+}
