@@ -1,7 +1,7 @@
 iav_social_media_buttons
 ========================
 
-Light weight module that provides a block with links to various social media providers.
+Lightweight module that provides a block with links to various social media providers.
 
 *Instructions*
 - Enable the module
